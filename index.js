@@ -20,7 +20,65 @@ async function run() {
   try {
     await client.connect();
 
-    // const ProductsDB = client.db("ProductDB").collection("products");
+    const AssignmentDB = client.db("AssignmentDB").collection("CreatedAssignments");
+
+    app.get('/allAssignments', async (req, res) => {
+      const projection = { title: 1, thumbnail: 1 }
+      const assignments = await AssignmentDB.find().project(projection).toArray()
+      res.send(assignments)
+    })
+
+    app.get('/:id', async (req, res) => {
+      const _id = req.params.id
+      const selectedAssignment = AssignmentDB.find({ _id: new ObjectId(id) })
+      res.send(selectedAssignment)
+    })
+
+    app.post('/addAssignment', async (req, res) => {
+      const newProduct = req.body
+      const result = await AssignmentDB.insertOne(newProduct);
+      res.send(result)
+
+    })
+
+    app.put('/update/:id', async (req, res) => {
+      const id = req.params.id;
+
+      const { title, thumbnail, marks, difficulty, description, dueDate } = req.body
+      const query = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: {
+          title: title,
+          marks: marks,
+          description: description,
+          difficulty: difficulty,
+          dueDate: dueDate,
+          thumbnail: thumbnail
+        },
+      };
+
+      const result = await AssignmentDB.updateOne(query, updateDoc);
+      res.send(result)
+
+    })
+
+    app.delete('/:id', async (req, res) => {
+
+      const id = req.params.id;
+      const result = await AssignmentDB.deleteOne({ _id: new ObjectId(id) })
+
+      res.send(result)
+
+    })
+
+
+
+
+
+
+
+
+
     // const Cart = client.db("CartDB").collection("CartItems");
 
     // app.get('/allproducts', async (req, res) => {
@@ -82,13 +140,7 @@ async function run() {
 
 
 
-    // app.post('/addProduct', async (req, res) => {
-    //   const newProduct = req.body
 
-    //   const result = await ProductsDB.insertOne(newProduct);
-    //   res.send(result)
-
-    // })
 
     // app.post('/addtoCart', async (req, res) => {
     //   const newProduct = req.body
@@ -110,26 +162,7 @@ async function run() {
 
     // })
 
-    // app.put('/update/:id', async (req, res) => {
-    //   const id = req.params.id;
 
-    //   const { name, brandName, price, Description, rating } = req.body
-    //   const query = { _id: new ObjectId(id) }
-    //   const updateDoc = {
-    //     $set: {
-    //       name: name,
-    //       brandName: brandName,
-    //       price: price,
-    //       Description: Description,
-    //       rating: rating
-
-    //     },
-    //   };
-
-    //   const result = await ProductsDB.updateOne(query, updateDoc);
-    //   res.send(result)
-
-    // })
 
     // app.delete('/:name', async (req, res) => {
 
