@@ -21,6 +21,7 @@ async function run() {
     await client.connect();
 
     const AssignmentDB = client.db("AssignmentDB").collection("CreatedAssignments");
+    const SubmittedAssignmentDB = client.db("SubmittedDB").collection("SubmittedDB");
 
     app.get('/allAssignments', async (req, res) => {
       const projection = { title: 1, thumbnail: 1 }
@@ -28,9 +29,22 @@ async function run() {
       res.send(assignments)
     })
 
-    app.get('/:id', async (req, res) => {
-      const _id = req.params.id
-      const selectedAssignment = AssignmentDB.find({ _id: new ObjectId(id) })
+    app.get('/submitted', async (req, res) => {
+     const query = { pending:true }
+
+      const assignments = await SubmittedAssignmentDB.find(query).toArray()
+      console.log(assignments)
+      res.send(assignments)
+    })
+
+
+
+
+
+    app.get('/details/:id', async (req, res) => {
+      const id = req.params.id
+      const selectedAssignment = await AssignmentDB.findOne({ _id: new ObjectId(id) })
+      console.log(selectedAssignment)
       res.send(selectedAssignment)
     })
 
@@ -40,6 +54,16 @@ async function run() {
       res.send(result)
 
     })
+
+    app.post('/submitAssignment', async (req, res) => {
+
+      const assignment = req.body
+      console.log(assignment)
+      const result = await SubmittedAssignmentDB.insertOne(assignment)
+      res.send(result)
+    })
+
+
 
     app.put('/update/:id', async (req, res) => {
       const id = req.params.id;
