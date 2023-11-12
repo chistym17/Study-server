@@ -22,6 +22,7 @@ async function run() {
 
     const AssignmentDB = client.db("AssignmentDB").collection("CreatedAssignments");
     const SubmittedAssignmentDB = client.db("SubmittedDB").collection("SubmittedDB");
+    const MarkedAssignmentDB = client.db("MarkedDB").collection("MarkedDB");
 
     app.get('/allAssignments', async (req, res) => {
       const projection = { title: 1, thumbnail: 1 }
@@ -30,7 +31,7 @@ async function run() {
     })
 
     app.get('/submitted', async (req, res) => {
-     const query = { pending:true }
+      const query = { pending: true }
 
       const assignments = await SubmittedAssignmentDB.find(query).toArray()
       console.log(assignments)
@@ -48,6 +49,13 @@ async function run() {
       res.send(selectedAssignment)
     })
 
+    app.get('/submitted/:id', async (req, res) => {
+      const id = req.params.id
+      const selectedAssignment = await SubmittedAssignmentDB.findOne({ _id: new ObjectId(id) })
+      console.log(selectedAssignment)
+      res.send(selectedAssignment)
+    })
+
     app.post('/addAssignment', async (req, res) => {
       const newProduct = req.body
       const result = await AssignmentDB.insertOne(newProduct);
@@ -58,8 +66,13 @@ async function run() {
     app.post('/submitAssignment', async (req, res) => {
 
       const assignment = req.body
-      console.log(assignment)
       const result = await SubmittedAssignmentDB.insertOne(assignment)
+      res.send(result)
+    })
+    app.post('/marksReceived', async (req, res) => {
+
+      const assignment = req.body
+      const result = await MarkedAssignmentDB.insertOne(assignment)
       res.send(result)
     })
 
@@ -67,8 +80,6 @@ async function run() {
 
     app.put('/update/:id', async (req, res) => {
       const id = req.params.id;
-
-      const { title, thumbnail, marks, difficulty, description, dueDate } = req.body
       const query = { _id: new ObjectId(id) }
       const updateDoc = {
         $set: {
@@ -82,6 +93,21 @@ async function run() {
       };
 
       const result = await AssignmentDB.updateOne(query, updateDoc);
+      res.send(result)
+
+    })
+
+
+    app.put('/updateStatus/:title', async (req, res) => {
+      const title = req.params.title;
+      const query = { title: title }
+      const updateDoc = {
+        $set: {
+          pending: false
+        },
+      };
+
+      const result = await SubmittedAssignmentDB.updateOne(query, updateDoc);
       res.send(result)
 
     })
