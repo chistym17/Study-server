@@ -25,14 +25,25 @@ async function run() {
     const MarkedAssignmentDB = client.db("MarkedDB").collection("MarkedDB");
 
     app.get('/allAssignments', async (req, res) => {
+      const currentpage=req.query.page-1
       const projection = { title: 1, thumbnail: 1 }
-      const assignments = await AssignmentDB.find().project(projection).toArray()
+      const assignments = await AssignmentDB.find().skip(currentpage*4).limit(4).project(projection).toArray()
       res.send(assignments)
     })
 
+
+ app.get('/filtered', async (req, res) => {
+      const difficulty=req.query.difficulty
+      const projection = { title: 1, thumbnail: 1 }
+      const query={difficulty:difficulty}
+      const assignments = await AssignmentDB.find(query).project(projection).toArray()
+      res.send(assignments)
+    })
+
+
+
     app.get('/submitted', async (req, res) => {
       const query = { pending: true }
-
       const assignments = await SubmittedAssignmentDB.find(query).toArray()
       console.log(assignments)
       res.send(assignments)
