@@ -1,11 +1,22 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
+
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 5000
-app.use(cors())
+app.use(cors({
+
+origin:['http://localhost:5173'],
+credentials:true
+
+}))
 app.use(express.json())
+app.use(cookieParser())
+
+
 const uri = `mongodb+srv://${process.env.db_user}:${process.env.db_pass}@cluster0.dqsrrse.mongodb.net/?retryWrites=true&w=majority`
   ;
 const client = new MongoClient(uri, {
@@ -16,6 +27,23 @@ const client = new MongoClient(uri, {
   }
 });
 
+const verifyToken = async (req, res, next) => {
+  const token = req.cookies.token
+  console.log('token', token)
+  if (!token) return res.send({ message: 'Not Authorized' })
+  jwt.verify(token, process.env.Access_Token, (err, decoded) => {
+    if (err) return res.send({ message: 'Not Authorized' })
+    req.user = decoded
+    next()
+
+  }
+  )
+
+
+}
+
+
+
 async function run() {
   try {
     await client.connect();
@@ -25,26 +53,33 @@ async function run() {
     const MarkedAssignmentDB = client.db("MarkedDB").collection("MarkedDB");
 
     app.get('/allAssignments', async (req, res) => {
-      const currentpage=req.query.page-1
+      const currentpage = req.query.page - 1
       const projection = { title: 1, thumbnail: 1 }
-      const assignments = await AssignmentDB.find().skip(currentpage*4).limit(4).project(projection).toArray()
+      const assignments = await AssignmentDB.find().skip(currentpage * 4).limit(4).project(projection).toArray()
       res.send(assignments)
     })
 
 
- app.get('/filtered', async (req, res) => {
-      const difficulty=req.query.difficulty
+    app.get('/filtered', async (req, res) => {
+      const difficulty = req.query.difficulty
       const projection = { title: 1, thumbnail: 1 }
-      const query={difficulty:difficulty}
+      const query = { difficulty: difficulty }
       const assignments = await AssignmentDB.find(query).project(projection).toArray()
       res.send(assignments)
     })
 
 
 
-    app.get('/submitted', async (req, res) => {
-      const query = { pending: true }
-      const assignments = await SubmittedAssignmentDB.find(query).toArray()
+    app.get('/submitted', verifyToken, async (req, res) => {
+      console.log(req.user)
+      let query = {}
+      if (req.query?.email) {
+        query = { email: req.query.email }
+      }
+      if (req.user.email != query.email) return res.send('Unauthorized Access')
+
+      const que = { pending: true }
+      const assignments = await SubmittedAssignmentDB.find(que).toArray()
       console.log(assignments)
       res.send(assignments)
     })
@@ -74,24 +109,48 @@ async function run() {
 
     })
 
-    app.post('/submitAssignment', async (req, res) => {
-
+    app.post('/submitAssignment',verifyToken, async (req, res) => {
+       let query = {}
+      if (req.query?.email) {
+        query = { email: req.query.email }
+      }
+      if (req.user.email != query.email) return res.send('Unauthorized Access')
       const assignment = req.body
       const result = await SubmittedAssignmentDB.insertOne(assignment)
       res.send(result)
     })
-    app.post('/marksReceived', async (req, res) => {
-
+    app.post('/marksReceived', verifyToken,async (req, res) => {
+       let query = {}
+      if (req.query?.email) {
+        query = { email: req.query.email }
+      }
+      if (req.user.email != query.email) return res.send('Unauthorized Access')
       const assignment = req.body
       const result = await MarkedAssignmentDB.insertOne(assignment)
       res.send(result)
     })
 
+    app.post('/jwt', async (req, res) => {
+      const user = req.body
+      const token = jwt.sign(user, process.env.Access_Token, { expiresIn: '96h' })
+      console.log(token)
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: false,
 
+      })
+      res.send({ success: true })
 
-    app.put('/update/:id', async (req, res) => {
+    })
+
+    app.put('/update/:id',verifyToken, async (req, res) => {
+       let query = {}
+      if (req.query?.email) {
+        query = { email: req.query.email }
+      }
+      if (req.user.email != query.email) return res.send('Unauthorized Access')
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) }
+      const que = { _id: new ObjectId(id) }
       const updateDoc = {
         $set: {
           title: title,
@@ -103,7 +162,7 @@ async function run() {
         },
       };
 
-      const result = await AssignmentDB.updateOne(query, updateDoc);
+      const result = await AssignmentDB.updateOne(que, updateDoc);
       res.send(result)
 
     })
