@@ -9,7 +9,7 @@ const app = express()
 const port = process.env.PORT || 5000
 app.use(cors({
 
-origin:"group-study-project.web.app",
+origin:'https://group-study-project.web.app',
 credentials:true
 
 }))
